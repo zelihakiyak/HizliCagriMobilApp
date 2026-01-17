@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'register_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/auth_service.dart';
+import 'admin_home_screen.dart';
 import 'manager_home_screen.dart';
 import 'secretary_home_screen.dart';
-import '../services/auth_service.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,35 +16,47 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final AuthService _authService = AuthService(); // Servisi çağırdık
-  bool _rememberMe = false;
+  bool _rememberMe = false; 
+  bool _isLoading = false;
+  final AuthService _authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: const Color(0xFFF8F9FB), 
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Center(
-                child: Text(
-                  'Hoş Geldiniz',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A1F36),
-                  ),
+              // BAŞLIK
+              const Text(
+                "Hoş Geldiniz",
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1D2939), 
                 ),
               ),
-              const SizedBox(height: 40),
-              _buildTextField(hintText: 'E-posta', controller: _emailController),
-              const SizedBox(height: 16),
-              _buildTextField(hintText: 'Şifre', obscureText: true, controller: _passwordController),
-              const SizedBox(height: 16),
+              const SizedBox(height: 48),
+
+              // KULLANICI ADI (E-POSTA) ALANI
+              _buildInputLabelField(
+                hint: "Kullanıcı Adı",
+                controller: _emailController,
+              ),
+              const SizedBox(height: 20),
+
+              // ŞİFRE ALANI
+              _buildInputLabelField(
+                hint: "Şifre",
+                controller: _passwordController,
+                isPassword: true,
+              ),
+              const SizedBox(height: 12),
+
+              // BENİ HATIRLA
               Row(
                 children: [
                   SizedBox(
@@ -50,109 +64,51 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: 24,
                     child: Checkbox(
                       value: _rememberMe,
-                      activeColor: const Color(0xFF5C7CFA),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      side: const BorderSide(color: Colors.grey),
-                      onChanged: (value) {
-                        setState(() {
-                          _rememberMe = value!;
-                        });
-                      },
+                      onChanged: (val) => setState(() => _rememberMe = val!),
+                      activeColor: const Color(0xFF6366F1),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                     ),
                   ),
                   const SizedBox(width: 8),
                   const Text(
-                    'Beni Hatırla',
-                    style: TextStyle(color: Color(0xFF4A4A4A)),
+                    "Beni Hatırla",
+                    style: TextStyle(color: Color(0xFF475467), fontSize: 14),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
+
+              // GİRİŞ YAP BUTONU
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                 onPressed: () async {
-                  
-                  String email = _emailController.text.trim();
-                  String password = _passwordController.text.trim();
-
-                  if (email.isEmpty || password.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Lütfen tüm alanları doldurun")),
-                    );
-                    return;
-                  }
-
-                  // API'ye soruyoruz...
-                  var user = await _authService.login(email, password);
-
-                  if (user != null) {
-                    // Giriş Başarılı!
-                    String role = user['role']; // API'den gelen rol (Mudur/Sekreter)
-                    int userId = user['id'];
-                    // Gelen verideki ID'yi ileride kullanmak için saklayabiliriz (şimdilik geçiyoruz)
-                    
-                    if (role == "Mudur") {
-                      Navigator.pushReplacement(
-                        context, 
-                        MaterialPageRoute(builder: (context) => const ManagerHomeScreen())
-                      );
-                    } else {
-                      Navigator.pushReplacement(
-                        context, 
-                        MaterialPageRoute(builder: (context) => SecretaryHomeScreen(currentUserId: userId))
-                      );
-                    }
-                  } else {
-                    // Giriş Başarısız
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("E-posta veya şifre hatalı!")),
-                    );
-                  }
-                },
+                  onPressed: _isLoading ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5C7CFA),
-                    foregroundColor: Colors.white,
+                    backgroundColor: const Color(0xFF637BFF), // Görseldeki canlı mavi
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
                   ),
-                  child: const Text(
-                    'Giriş Yap',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          "Giriş Yap",
+                          style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.w600),
+                        ),
                 ),
               ),
               const SizedBox(height: 24),
+
+              // KAYDOL LİNKİ
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
-                    'Hesabınız yok mu? ',
-                    style: TextStyle(color: Color(0xFF4A4A4A)),
-                  ),
-                  
+                  const Text("Hesabınız yok mu? ", style: TextStyle(color: Color(0xFF475467))),
                   GestureDetector(
-                    onTap: () {
-                      // Login sayfasından Register sayfasına geçiş kodu:
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const RegisterScreen()),
-                      );
-                    },
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const RegisterScreen())),
                     child: const Text(
-                      'Kaydol',
-                      style: TextStyle(
-                        color: Color(0xFF5C7CFA),
-                        fontWeight: FontWeight.w500,
-                      ),
+                      "Kaydol",
+                      style: TextStyle(color: Color(0xFF637BFF), fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -164,26 +120,110 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildTextField({
-    required String hintText, 
-    bool obscureText = false,
-    required TextEditingController controller
-    }) {
+  Widget _buildInputLabelField({required String hint, required TextEditingController controller, bool isPassword = false}) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFE8EDF2),
-        borderRadius: BorderRadius.circular(8),
+        color: const Color(0xFFE9EDF5),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: TextField(
         controller: controller,
-        obscureText: obscureText,
+        obscureText: isPassword,
         decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Color(0xFF98A2B3)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          hintText: hintText,
-          hintStyle: const TextStyle(color: Colors.grey),
         ),
       ),
     );
+  }
+
+  Future<void> _handleLogin() async {
+    print("Giriş butonu tıklandı!");
+
+    String email = _emailController.text.trim();
+    String password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Lütfen tüm alanları doldurun.")),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      print("AuthService çağrılıyor...");
+      var user = await _authService.login(email, password);
+
+      if (user != null) {
+        print("Giriş başarılı, Rol: ${user['role']}");
+
+        // 1. OTURUM BİLGİLERİNİ KAYDET
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isLoggedIn', true);
+        await prefs.setString('role', user['role']);
+        await prefs.setInt('userId', user['id']);
+        
+        if (user['departmentId'] != null) {
+          await prefs.setInt('departmentId', user['departmentId']);
+        }
+        // BENİ HATIRLA 
+        if (_rememberMe) { 
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('isLoggedIn', true);
+          await prefs.setInt('userId', user['id']);
+          await prefs.setInt('deptId', user['departmentId'] ?? 0);
+          await prefs.setString('role', user['role']);
+        }
+        // 2. RÖLE GÖRE EKRANLARA YÖNLENDİR
+        if (!mounted) return;
+
+        Widget nextScreen;
+        
+        switch (user['role']) {
+          case "Admin":
+            nextScreen = AdminHomeScreen(
+              currentUserId: user['id'],
+            );
+            break;
+          case "Mudur":
+            nextScreen = ManagerHomeScreen(
+              currentUserId: user['id'],
+              currentDepartmentId: user['departmentId'] ?? 0,
+            );
+            break;
+          case "Sekreter":
+            nextScreen = SecretaryHomeScreen(
+              currentUserId: user['id'],
+              currentDepartmentId: user['departmentId'] ?? 0,
+            );
+            break;
+          default:
+            nextScreen = const LoginScreen(); // Bilinmeyen rol durumu
+        }
+
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => nextScreen),
+          (route) => false,
+        );
+
+      } else {
+        print("Kullanıcı null döndü");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Giriş Başarısız! E-posta veya şifre hatalı.")),
+        );
+      }
+    } catch (e) {
+      print("LoginScreen Hatası: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Sunucuya bağlanırken bir hata oluştu.")),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 }

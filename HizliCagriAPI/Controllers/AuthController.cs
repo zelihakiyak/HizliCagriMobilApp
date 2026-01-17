@@ -18,34 +18,51 @@ namespace HizliCagriAPI.Controllers
 
         // POST: api/Auth/register
         [HttpPost("register")]
-        public async Task<IActionResult> Register(User user)
+        public async Task<IActionResult> Register([FromBody] User user)
         {
-            // Aynı mailde kullanıcı var mı kontrol et
-            if (await _context.Users.AnyAsync(u => u.Email == user.Email))
+            // 1. Temiz Validasyon: Gelen verilerin boş olmadığını kontrol et
+            if (string.IsNullOrEmpty(user.Email) || string.IsNullOrEmpty(user.Password))
             {
-                return BadRequest("Bu e-posta adresi zaten kayıtlı.");
+                return BadRequest("E-posta ve şifre zorunludur.");
             }
 
-            // Gerçek projede şifreyi hashlemek gerekir, şimdilik direkt kaydediyoruz
+            // 2. Rol Bazlı Onay Mantığı
+            // Admin ve Müdür rolleri için IsApproved otomatik true, diğerleri (Sekreter) false olur.
+            if (user.Role == "Admin" || user.Role == "Mudur")
+            {
+                user.IsApproved = true; 
+            }
+            else
+            {
+                user.IsApproved = false; 
+            }
+
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return Ok(user);
+            return Ok(new { 
+                message = user.IsApproved ? "Kayıt başarıyla tamamlandı." : "Kayıt başarılı, Admin onayı bekleniyor." 
+            });
         }
+        
 
         // POST: api/Auth/login
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginDto loginData)
+        public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
         {
             var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email == loginData.Email && u.Password == loginData.Password);
+                .FirstOrDefaultAsync(u => u.Email == loginDto.Email && u.Password == loginDto.Password);
 
-            if (user == null)
-            {
-                return Unauthorized("E-posta veya şifre hatalı.");
-            }
+            if (user == null) return Unauthorized(new { message = "Hatalı giriş" });
+            if (!user.IsApproved) return BadRequest(new { message = "Onay bekleniyor" });
 
-            return Ok(user); // Kullanıcı bulundu, bilgilerini (ID, Role vs.) dön
+            // Flutter tarafı küçük harflerle (role, id, departmentId) bekliyor olabilir
+            return Ok(new {
+                id = user.Id,
+                fullName = user.FullName,
+                role = user.Role,
+                departmentId = user.DepartmentId // Burası boş (null) gitmemeli
+            });
         }
     }
 
@@ -54,5 +71,13 @@ namespace HizliCagriAPI.Controllers
     {
         public required string Email { get; set; }
         public required string Password { get; set; }
+    }
+    public class RegisterDto
+    {
+        public required string FullName { get; set; }
+        public required string Email { get; set; }
+        public required string Password { get; set; }
+        public int DepartmentId { get; set; }
+        public required string Role { get; set; }
     }
 }

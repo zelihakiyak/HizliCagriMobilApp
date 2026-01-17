@@ -8,18 +8,21 @@ namespace HizliCagriAPI.Models
         public int Id { get; set; }
 
         [Required]
-        public string FullName { get; set; } = string.Empty; // Ad Soyad
+        public string FullName { get; set; } = string.Empty;
 
         [Required]
         [EmailAddress]
-        public string Email { get; set; } = string.Empty; // Giriş için
+        public string Email { get; set; } = string.Empty; 
 
         [Required]
-        public string Password { get; set; } = string.Empty; // Şifre
+        public string Password { get; set; } = string.Empty; 
 
         [Required]
-        public string Role { get; set; } = string.Empty; // "Mudur", "Sekreter"
+        public string Role { get; set; } = string.Empty;
 
-        public string? Company { get; set; } // Şirket Adı
+        public int DepartmentId { get; set; }
+        public Department? Department { get; set; }
+        public string? PhoneNumber { get; set; }
+        public bool IsApproved { get; set; } = false;
     }
 }

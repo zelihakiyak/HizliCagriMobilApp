@@ -22,8 +22,7 @@ namespace HizliCagriAPI.Controllers
         public async Task<IActionResult> CreateTask(TaskItem taskItem)
         {
             taskItem.CreatedAt = DateTime.Now;
-            taskItem.Status = "Yeni"; // İlk oluştuğunda durumu "Yeni" olsun
-
+            taskItem.Status = "Yeni"; 
             _context.TaskItems.Add(taskItem);
             await _context.SaveChangesAsync();
 
@@ -32,12 +31,14 @@ namespace HizliCagriAPI.Controllers
 
         // GET: api/Tasks/secretary/{id}
         // Belirli bir sekretere ait görevleri getirir (Sekreter kullanır)
-        [HttpGet("secretary/{id}")]
-        public async Task<IActionResult> GetTasksForSecretary(int id)
+        [HttpGet("secretary/{secretaryId}")]
+        public async Task<ActionResult<IEnumerable<TaskItem>>> GetTasksBySecretary(int secretaryId)
         {
+            // Veritabanında sekretere atanan görevleri filtreler
             var tasks = await _context.TaskItems
-                .Where(t => t.AssignedToUserId == id)
-                .OrderByDescending(t => t.CreatedAt) // En yeniler üstte
+                .Include(t => t.AssignedByUser) // Müdür bilgisi için
+                .Where(t => t.AssignedToUserId == secretaryId)
+                .OrderByDescending(t => t.CreatedAt) 
                 .ToListAsync();
 
             return Ok(tasks);
@@ -65,6 +66,19 @@ namespace HizliCagriAPI.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(task);
+        }
+        // TasksController.cs içinde status güncelleme için daha güvenli yol:
+        [HttpPut("{id}/status")]
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] dynamic data)
+        {
+            var task = await _context.TaskItems.FindAsync(id);
+            if (task == null) return NotFound();
+
+            // Flutter'dan gelen string'i düzgünce ayıklar
+            task.Status = data.ToString(); 
+            
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Durum güncellendi" });
         }
     }
 }

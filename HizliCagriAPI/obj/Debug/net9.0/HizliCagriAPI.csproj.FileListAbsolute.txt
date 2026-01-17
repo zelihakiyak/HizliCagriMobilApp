@@ -140,6 +140,7 @@ C:\vscode_flutter\hizli_cagri\HizliCagriAPI\obj\Debug\net9.0\HizliCagriAPI.Assem
 C:\vscode_flutter\hizli_cagri\HizliCagriAPI\obj\Debug\net9.0\HizliCagriAPI.csproj.CoreCompileInputs.cache
 C:\vscode_flutter\hizli_cagri\HizliCagriAPI\obj\Debug\net9.0\HizliCagriAPI.MvcApplicationPartsAssemblyInfo.cs
 C:\vscode_flutter\hizli_cagri\HizliCagriAPI\obj\Debug\net9.0\HizliCagriAPI.MvcApplicationPartsAssemblyInfo.cache
+C:\vscode_flutter\hizli_cagri\HizliCagriAPI\obj\Debug\net9.0\HizliCagriAPI.sourcelink.json
 C:\vscode_flutter\hizli_cagri\HizliCagriAPI\obj\Debug\net9.0\rjimswa.dswa.cache.json
 C:\vscode_flutter\hizli_cagri\HizliCagriAPI\obj\Debug\net9.0\rjsmrazor.dswa.cache.json
 C:\vscode_flutter\hizli_cagri\HizliCagriAPI\obj\Debug\net9.0\rjsmcshtml.dswa.cache.json

@@ -9,13 +9,13 @@ namespace HizliCagriAPI.Models
         public int Id { get; set; }
 
         [Required]
-        public string Title { get; set; } = string.Empty; // Başlık
+        public string Title { get; set; } = string.Empty; 
 
-        public string Description { get; set; } = string.Empty; // Açıklama
+        public string Description { get; set; } = string.Empty; 
 
-        public string UrgencyLevel { get; set; } = "Orta"; // Düşük, Orta, Yüksek
+        public string UrgencyLevel { get; set; } = "Orta"; 
 
-        public string Status { get; set; } = "Yeni"; // Yeni, Tamamlandı
+        public string Status { get; set; } = "Yeni"; 
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 

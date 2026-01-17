@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
+import '../services/department_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -8,181 +10,184 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  // Dropdown seçimlerini tutacak değişkenler
-  String? _selectedRole;
-  String? _selectedCompany;
+ 
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
 
-  // Örnek veriler (Gerçek uygulamada veritabanından gelebilir)
-  final List<String> _roles = ['Yönetici', 'Personel', 'Tekniker'];
-  final List<String> _companies = ['Teknoloji A.Ş.', 'Lojistik Ltd.', 'Sağlık Grubu'];
+  final AuthService _authService = AuthService();
+  final DepartmentService _deptService = DepartmentService();
+
+ 
+  int? _selectedDepartmentId;
+  List<dynamic> _departments = [];
+  bool _isLoadingDepts = true;
+  bool _isLoading = false; 
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDepartments();
+  }
+
+  Future<void> _fetchDepartments() async {
+    try {
+      var data = await _deptService.getDepartments();
+      if (mounted) {
+        setState(() {
+          _departments = data;
+          _isLoadingDepts = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingDepts = false);
+      }
+      print("Departmanlar yüklenirken hata oluştu: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: const Color(0xFFF8F9FB), 
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF5F5F5), // Gövde ile aynı renk
-        elevation: 0, // Gölgeyi kaldır
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context), // Geri dönme işlevi
-        ),
-        title: const Text(
-          'Kayıt Ol',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: const Color(0xFF1D2939),
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 32.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Kayıt Ol",
+                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFF1D2939)),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Sekreter hesabı oluşturmak için bilgileri girin.",
+                style: TextStyle(color: Color(0xFF475467)),
+              ),
+              const SizedBox(height: 32),
+
+              _buildInputLabelField(hint: "Ad Soyad", controller: _nameController),
+              const SizedBox(height: 16),
+              _buildInputLabelField(hint: "E-posta", controller: _emailController),
+              const SizedBox(height: 16),
+              _buildInputLabelField(hint: "Telefon", controller: _phoneController, keyboardType: TextInputType.phone),
+              const SizedBox(height: 16),
+              _buildInputLabelField(hint: "Şifre", controller: _passwordController, isPassword: true),
+              const SizedBox(height: 24),
+
+              const Text("Bağlı Olduğunuz Departman", style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF344054))),
+              const SizedBox(height: 8),
+              
+              _isLoadingDepts
+                  ? const Center(child: CircularProgressIndicator())
+                  : Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE9EDF5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          isExpanded: true,
+                          value: _selectedDepartmentId,
+                          hint: const Text("Departman Seçiniz", style: TextStyle(color: Color(0xFF98A2B3))),
+                          items: _departments.map((dept) {
+                            return DropdownMenuItem<int>(
+                              value: dept['id'],
+                              child: Text(dept['name']), 
+                            );
+                          }).toList(),
+                          onChanged: (val) => setState(() => _selectedDepartmentId = val),
+                        ),
+                      ),
+                    ),
+
+              const SizedBox(height: 40),
+
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _handleRegister,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF637BFF),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'Kayıt Ol',
+                          style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 10),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-
-            // 1. Ad Alanı
-            _buildTextField(hintText: 'Ad'),
-            const SizedBox(height: 16),
-
-            // 2. E-posta Alanı
-            _buildTextField(hintText: 'E-posta'),
-            const SizedBox(height: 16),
-
-            // 3. Şifre Alanı
-            _buildTextField(hintText: 'Şifre', obscureText: true),
-            const SizedBox(height: 16),
-
-            // 4. Rol Dropdown
-            _buildDropdown(
-              hint: 'Rol',
-              value: _selectedRole,
-              items: _roles,
-              onChanged: (value) {
-                setState(() {
-                  _selectedRole = value;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // 5. Şirket Dropdown
-            _buildDropdown(
-              hint: 'Şirket',
-              value: _selectedCompany,
-              items: _companies,
-              onChanged: (value) {
-                setState(() {
-                  _selectedCompany = value;
-                });
-              },
-            ),
-            const SizedBox(height: 32),
-
-            // 6. Kaydol Butonu
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: () {
-                  // Kayıt işlemleri buraya
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF5C7CFA),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text(
-                  'Kaydol',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // 7. Giriş Yap Linki
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  'Zaten bir hesabınız var mı? ',
-                  style: TextStyle(color: Color(0xFF4A4A4A)),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.pop(context); // Giriş sayfasına geri dön
-                  },
-                  child: const Text(
-                    'Giriş yap',
-                    style: TextStyle(
-                      color: Color(0xFF5C7CFA),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-             const SizedBox(height: 20),
-          ],
-        ),
-      ),
     );
   }
 
-  // Metin Giriş Kutusu Yardımcısı
-  Widget _buildTextField({required String hintText, bool obscureText = false}) {
+  Future<void> _handleRegister() async {
+    
+    if (_selectedDepartmentId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Lütfen bir departman seçin!")));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    bool success = await _authService.register(
+      fullName: _nameController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+      departmentId: _selectedDepartmentId!, 
+      role: "Sekreter",
+    );
+
+    if (mounted) setState(() => _isLoading = false);
+
+    if (success) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Kayıt başarılı! Admin onayı bekleniyor."), backgroundColor: Colors.green),
+        );
+        Navigator.pop(context);
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Kayıt sırasında hata oluştu. Türkçe karakterleri ve bilgileri kontrol edin."), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Widget _buildInputLabelField({required String hint, required TextEditingController controller, bool isPassword = false, TextInputType keyboardType = TextInputType.text}) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFE8EDF2),
-        borderRadius: BorderRadius.circular(8),
+        color: const Color(0xFFE9EDF5),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: TextField(
-        obscureText: obscureText,
+        controller: controller,
+        obscureText: isPassword,
+        keyboardType: keyboardType,
         decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Color(0xFF98A2B3)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          hintText: hintText,
-          hintStyle: const TextStyle(color: Colors.grey),
-        ),
-      ),
-    );
-  }
-
-  // Dropdown Menü Yardımcısı
-  Widget _buildDropdown({
-    required String hint,
-    required String? value,
-    required List<String> items,
-    required void Function(String?) onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE8EDF2),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          hint: Text(hint, style: const TextStyle(color: Colors.grey)),
-          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
-          isExpanded: true, // Sağa yaslanması için
-          items: items.map((String item) {
-            return DropdownMenuItem<String>(
-              value: item,
-              child: Text(item),
-            );
-          }).toList(),
-          onChanged: onChanged,
         ),
       ),
     );

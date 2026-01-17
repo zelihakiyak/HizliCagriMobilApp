@@ -33,7 +33,11 @@ dependencies:
     sdk: flutter
   http: ^1.6.0      # API çağrıları için
   provider: ^6.0.0  # Durum yönetimi için
-  shared_preferences: ^2.0.15  # Token saklamak için
+  shared_preferences: ^2.5.4  # Token saklamak için
+  table_calendar: ^3.0.9
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
 
 
   # The following adds the Cupertino Icons font to your application.

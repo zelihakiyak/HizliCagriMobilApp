@@ -8,19 +8,17 @@ namespace HizliCagriAPI.Data
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         public DbSet<User> Users { get; set; }
-        public DbSet<TaskItem> TaskItems { get; set; } // Adını TaskItem yapmıştık
-        public DbSet<Call> Calls { get; set; }
+        public DbSet<TaskItem> TaskItems { get; set; } 
+        public DbSet<Department> Departments { get; set; }
+        public DbSet<ScheduleItem> ScheduleItems { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            // Task tablosunda iki tane User ilişkisi olduğu için (Alan ve Veren)
-            // SQL Server'da "Multiple Cascade Paths" hatası almamak için silme davranışını kısıtlıyoruz.
-            
+        {   
             modelBuilder.Entity<TaskItem>()
                 .HasOne(t => t.AssignedToUser)
                 .WithMany()
                 .HasForeignKey(t => t.AssignedToUserId)
-                .OnDelete(DeleteBehavior.Restrict); // Sekreter silinirse görevi silme (hata ver)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<TaskItem>()
                 .HasOne(t => t.AssignedByUser)
